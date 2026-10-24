@@ -37,5 +37,5 @@ const fixedSdk = json(join(patched, 'patched-plugin-sdk.json'));
 assert.equal(originalSdk.version, fixedSdk.version);
 assert.deepEqual(originalSdk.dependencies, fixedSdk.dependencies);
 compareJavaScript(join(base, 'node_modules/@immich/plugin-sdk/dist'), join(patched, 'plugin-sdk-dist'));
-compareJavaScript(join(base, 'dist/migrations'), join(patched, 'dist/migrations'));
+compareJavaScript(join(base, 'dist/schema/migrations'), join(patched, 'dist/schema/migrations'));
 console.log('v3.3.5 runtime dependencies and database migrations match; retaining ImageGenius native modules.');
