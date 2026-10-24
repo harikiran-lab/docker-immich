@@ -12,6 +12,8 @@ COPY hdr/install-ffmpeg.sh /opt/immich-hdr/install-ffmpeg.sh
 RUN bash /opt/immich-hdr/install-ffmpeg.sh
 
 COPY --from=patched /usr/src/app/server/package.json /opt/immich-hdr/patched-package.json
+COPY --from=patched /usr/src/app/server/node_modules/@immich/plugin-sdk/package.json /opt/immich-hdr/patched-plugin-sdk.json
+COPY --from=patched /usr/src/app/server/node_modules/@immich/plugin-sdk/dist /opt/immich-hdr/plugin-sdk-dist
 COPY --from=patched /usr/src/app/server/dist /opt/immich-hdr/dist
 COPY hdr/verify-compatibility.mjs /opt/immich-hdr/verify-compatibility.mjs
 RUN node /opt/immich-hdr/verify-compatibility.mjs && \
