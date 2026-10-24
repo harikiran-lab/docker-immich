@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1
 
 # This image supplies only compiled v3.3.5 application files, never Debian native libraries.
-# Source and tests: https://github.com/harikiran-lab/immich/commit/f4bc45c5771cd5a46c90651102b455d27fc8b26d
-FROM ghcr.io/harikiran-lab/immich-server:sha-f4bc45c5771cd5a46c90651102b455d27fc8b26d@sha256:d90500556ce5bafbe5f3f3faef3293f8c753197cd792c3104aa683429644fe55 AS patched
+# Source and tests: https://github.com/harikiran-lab/immich/commit/081bc03c1f48cbeb7bc633b3de1c23deba030f57
+FROM ghcr.io/harikiran-lab/immich-server:sha-081bc03c1f48cbeb7bc633b3de1c23deba030f57@sha256:31eb96e957a639b52b30175d24c39cf189f2bbb5066a4949161a93c91f7d9499 AS patched
 
 # Keep ImageGenius's init, CUDA ML environment, native Node modules and Unraid interface.
 FROM ghcr.io/imagegenius/immich:3.3.5-cuda@sha256:88af37fb2c462923f141c576f41fb622614e8ce473289bfb1357106ce88e1376
@@ -29,8 +29,8 @@ ARG SOURCE_COMMIT
 ENV IMMICH_REPOSITORY=harikiran-lab/immich \
     IMMICH_REPOSITORY_URL=https://github.com/harikiran-lab/immich \
     IMMICH_SOURCE_REF=v3.3.5-hdr \
-    IMMICH_SOURCE_COMMIT=f4bc45c5771cd5a46c90651102b455d27fc8b26d \
-    IMMICH_SOURCE_URL=https://github.com/harikiran-lab/immich/commit/f4bc45c5771cd5a46c90651102b455d27fc8b26d
+    IMMICH_SOURCE_COMMIT=081bc03c1f48cbeb7bc633b3de1c23deba030f57 \
+    IMMICH_SOURCE_URL=https://github.com/harikiran-lab/immich/commit/081bc03c1f48cbeb7bc633b3de1c23deba030f57
 LABEL org.opencontainers.image.source="https://github.com/harikiran-lab/docker-immich" \
       org.opencontainers.image.url="https://github.com/harikiran-lab/docker-immich" \
       org.opencontainers.image.revision="${SOURCE_COMMIT}" \

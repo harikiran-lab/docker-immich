@@ -26,17 +26,21 @@ missing library mount.
   The download is SHA-256 pinned in `hdr/ffmpeg.json`. This includes the upstream
   [CUDA HLG reference-white correction](https://github.com/jellyfin/jellyfin-ffmpeg/issues/775).
 - Compiled server and web files come from the verified image at
-  [harikiran-lab/immich@f4bc45c](https://github.com/harikiran-lab/immich/commit/f4bc45c5771cd5a46c90651102b455d27fc8b26d),
+  [harikiran-lab/immich@081bc03](https://github.com/harikiran-lab/immich/commit/081bc03c1f48cbeb7bc633b3de1c23deba030f57),
   also pinned by image digest. That source adds bounded HDR frame-metadata
   recovery and original-first playback with one automatic fallback on a terminal
   network/decoding/unsupported-format media error. Playback position and intent
   are preserved. The menu stays in sync and the next asset tries the original again.
+- Regenerated encoded files require cache validation. Playback URLs also bypass
+  old cache entries, so a browser does not keep playing an old dark conversion
+  after it has been regenerated. The thumbnail hash alone does not change when
+  a video is encoded again. Unchanged cached bytes remain reusable after validation.
 - Native Node dependencies, CLI, core plugins and machine learning stay from the
   ImageGenius image. No Debian libraries or Node modules are copied into Ubuntu.
   The build refuses mismatched runtime package dependencies or executable database
   migrations. There are no schema changes relative to v3.3.5.
 
-The app-source workflow passed **218 regression tests**, web type checks and
+The app-source workflow gates publication on regression tests, web type checks and
 container HDR CPU checks. This recipe's workflow checks the inherited layout,
 native Sharp, CUDA ONNX provider availability, HLG/PQ CPU conversion, and actual
 API plus ML health using a new disposable database and Redis before publishing.

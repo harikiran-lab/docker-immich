@@ -13,6 +13,7 @@ for (const service of ['svc-server', 'svc-microservices', 'svc-machine-learning'
 accessSync('/init', constants.X_OK);
 assert.match(readFileSync('/etc/s6-overlay/s6-rc.d/svc-server/run', 'utf8'), /SERVER_PORT:-"8080"/);
 assert.match(readFileSync('/app/immich/server/dist/repositories/media.repository.js', 'utf8'), /probeFrameColors/);
+assert.match(readFileSync('/app/immich/server/dist/services/asset-media.service.js', 'utf8'), /CacheControl\.PrivateWithoutCache/);
 accessSync('/app/immich/data/www/index.html');
 accessSync('/app/immich/machine-learning/immich_ml/main.py');
 const require = createRequire('/app/immich/server/package.json');
