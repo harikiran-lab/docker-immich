@@ -67,7 +67,9 @@ or a hardware video-decoding test.
    ```
 
    It mounts no library or database and compares NVDEC/CUDA/NVENC HLG/PQ
-   luminance with CPU conversion. Regenerate previously dark encoded videos
+   luminance with CPU conversion. The recipe carries the synthetic verification
+   script in `hdr/verify-hdr.mjs`, using 256×256 clips to meet NVDEC's minimum
+   decoder dimensions. Regenerate previously dark encoded videos
    after validation, starting with one sample.
 5. To roll back, stop this container and restore the saved ImageGenius image
    digest with the same original template. Run only one server against the

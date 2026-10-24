@@ -21,7 +21,7 @@ RUN node /opt/immich-hdr/verify-compatibility.mjs && \
     mv /opt/immich-hdr/dist /app/immich/server/dist
 
 COPY --from=patched /build/www /app/immich/data/www
-COPY --from=patched /usr/src/app/server/bin/verify-hdr.mjs /app/immich/server/bin/verify-hdr.mjs
+COPY hdr/verify-hdr.mjs /app/immich/server/bin/verify-hdr.mjs
 COPY --from=patched /licenses/LICENSE.txt /licenses/immich-AGPL-3.0.txt
 COPY hdr/verify-layout.mjs /opt/immich-hdr/verify-layout.mjs
 
