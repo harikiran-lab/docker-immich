@@ -26,7 +26,7 @@ missing library mount.
   The download is SHA-256 pinned in `hdr/ffmpeg.json`. This includes the upstream
   [CUDA HLG reference-white correction](https://github.com/jellyfin/jellyfin-ffmpeg/issues/775).
 - Compiled server and web files come from the verified image at
-  [harikiran-lab/immich@081bc03](https://github.com/harikiran-lab/immich/commit/081bc03c1f48cbeb7bc633b3de1c23deba030f57),
+  [harikiran-lab/immich@8131115](https://github.com/harikiran-lab/immich/commit/813111513c79e0d59c398481969593cd149a2adb),
   also pinned by image digest. That source adds bounded HDR frame-metadata
   recovery and original-first playback with one automatic fallback on a terminal
   network/decoding/unsupported-format media error. Playback position and intent
@@ -35,6 +35,10 @@ missing library mount.
   old cache entries, so a browser does not keep playing an old dark conversion
   after it has been regenerated. The thumbnail hash alone does not change when
   a video is encoded again. Unchanged cached bytes remain reusable after validation.
+- With NVIDIA hardware decoding, quarter-turn and half-turn rotation is baked
+  into CUDA frames after scaling and tone mapping. This keeps portrait video
+  upright even when FFmpeg 8 drops its display matrix. Copying the video stream
+  leaves its original matrix intact. No CPU rotation step is added to NVDEC.
 - Native Node dependencies, CLI, core plugins and machine learning stay from the
   ImageGenius image. No Debian libraries or Node modules are copied into Ubuntu.
   The build refuses mismatched runtime package dependencies or executable database
@@ -46,6 +50,11 @@ native Sharp, CUDA ONNX provider availability, HLG/PQ CPU conversion, and actual
 API plus ML health using a new disposable database and Redis before publishing.
 Hosted runners have no NVIDIA GPU; provider availability is not GPU inference
 or a hardware video-decoding test.
+
+The CUDA rotation pipeline was also manually verified on an NVIDIA host with
+synthetic HLG and PQ clips for -90°, +90° and 180° rotation. Hardware and software
+outputs matched in dimensions and asymmetric quadrant placement. This test
+does not require library mounts, account credentials or a database.
 
 ## Use and rollback
 
@@ -71,6 +80,8 @@ or a hardware video-decoding test.
    script in `hdr/verify-hdr.mjs`, using 256×256 clips to meet NVDEC's minimum
    decoder dimensions. Regenerate previously dark encoded videos
    after validation, starting with one sample.
+   The check also verifies rotated HLG/PQ dimensions and asymmetric quadrant
+   placement for -90°, +90° and 180°, preventing sideways or double-rotated output.
 5. To roll back, stop this container and restore the saved ImageGenius image
    digest with the same original template. Run only one server against the
    database at a time. This is a packaging switch at v3.3.5, not a supported
