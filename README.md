@@ -1,5 +1,11 @@
 # [imagegenius/immich](https://github.com/imagegenius/docker-immich)
 
+This fork publishes **`ghcr.io/harikiran-lab/immich:cuda`**, an ImageGenius-compatible
+Immich v3.3.5 CUDA image with corrected HDR tone mapping and original-first web
+playback with automatic fallback. Keep your original ImageGenius container
+mappings and settings. See [FORK.md](FORK.md) for validation, deployment, rollback
+and the exact pinned source. The upstream documentation below is retained for reference.
+
 [![GitHub Release](https://img.shields.io/github/release/imagegenius/docker-immich.svg?color=007EC6&labelColor=555555&logoColor=ffffff&style=for-the-badge&logo=github)](https://github.com/imagegenius/docker-immich/releases)
 [![GitHub Package Repository](https://shields.io/badge/GitHub%20Package-blue?logo=github&logoColor=ffffff&style=for-the-badge)](https://github.com/imagegenius/docker-immich/packages)
 

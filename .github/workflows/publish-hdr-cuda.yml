@@ -1,0 +1,115 @@
+name: Publish compatible HDR CUDA image
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - Dockerfile.hdr
+      - hdr/**
+      - .github/workflows/publish-hdr-cuda.yml
+
+permissions: {}
+
+concurrency:
+  group: publish-hdr-cuda-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: write
+    services:
+      database:
+        image: ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0@sha256:bcf63357191b76a916ae5eb93464d65c07511da41e3bf7a8416db519b40b1c23
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: hdr-ci-only
+          POSTGRES_DB: immich
+          POSTGRES_INITDB_ARGS: --data-checksums
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d immich"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+      redis:
+        image: valkey/valkey:9@sha256:c123e3715db63d06d4ad6964884037aa0d5d4d703939b9929954112889708e1d
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "valkey-cli ping"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: Image tags
+        id: image
+        env:
+          OWNER: ${{ github.repository_owner }}
+          COMMIT: ${{ github.sha }}
+        run: |
+          image="ghcr.io/${OWNER,,}/immich"
+          echo "commit=$image:sha-$COMMIT-cuda" >> "$GITHUB_OUTPUT"
+          echo "channel=$image:cuda" >> "$GITHUB_OUTPUT"
+          echo "version=$image:3.3.5-cuda-hdr" >> "$GITHUB_OUTPUT"
+      - name: Build on the pinned ImageGenius CUDA base
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: Dockerfile.hdr
+          platforms: linux/amd64
+          load: true
+          push: false
+          tags: |
+            ${{ steps.image.outputs.commit }}
+            ${{ steps.image.outputs.channel }}
+            ${{ steps.image.outputs.version }}
+          build-args: SOURCE_COMMIT=${{ github.sha }}
+          cache-from: type=gha,scope=hdr-cuda
+          cache-to: type=gha,mode=max,scope=hdr-cuda
+      - name: Verify inherited configuration and HDR conversion
+        env:
+          IMAGE: ${{ steps.image.outputs.commit }}
+        run: |
+          test "$(docker image inspect "$IMAGE" --format '{{json .Config.Entrypoint}}')" = '["/init"]'
+          docker run --rm --entrypoint node "$IMAGE" /opt/immich-hdr/verify-layout.mjs
+          docker run --rm --entrypoint node "$IMAGE" /app/immich/server/bin/verify-hdr.mjs
+          docker run --rm --entrypoint /lsiopy/bin/python "$IMAGE" -c 'import onnxruntime as ort; providers = ort.get_available_providers(); print(providers); assert "CUDAExecutionProvider" in providers'
+      - name: Start the complete ImageGenius application against disposable services
+        env:
+          IMAGE: ${{ steps.image.outputs.commit }}
+        run: |
+          docker run -d --name hdr-ci --network host \
+            -e PUID="$(id -u)" -e PGID="$(id -g)" -e TZ=Etc/UTC \
+            -e DB_HOSTNAME=127.0.0.1 -e DB_USERNAME=postgres \
+            -e DB_PASSWORD=hdr-ci-only -e DB_DATABASE_NAME=immich \
+            -e REDIS_HOSTNAME=127.0.0.1 "$IMAGE"
+          curl --fail --silent --show-error --retry 40 --retry-all-errors --retry-delay 3 \
+            http://127.0.0.1:8080/api/server/ping
+          curl --fail --silent --show-error --retry 20 --retry-all-errors --retry-delay 3 \
+            http://127.0.0.1:3003/ping
+          docker logs hdr-ci
+      - name: Application diagnostics
+        if: failure()
+        run: docker logs hdr-ci || true
+      - name: Clean up the disposable application
+        if: always()
+        run: docker rm --force --volumes hdr-ci || true
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish after all checks pass
+        env:
+          COMMIT_IMAGE: ${{ steps.image.outputs.commit }}
+          CHANNEL_IMAGE: ${{ steps.image.outputs.channel }}
+          VERSION_IMAGE: ${{ steps.image.outputs.version }}
+        run: |
+          docker push "$COMMIT_IMAGE"
+          docker push "$CHANNEL_IMAGE"
+          docker push "$VERSION_IMAGE"
+          echo "Published \`$COMMIT_IMAGE\`, \`$CHANNEL_IMAGE\`, and \`$VERSION_IMAGE\`." >> "$GITHUB_STEP_SUMMARY"

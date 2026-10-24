@@ -1,0 +1,39 @@
+# syntax=docker/dockerfile:1
+
+# This image supplies only compiled v3.3.5 application files, never Debian native libraries.
+# Source and tests: https://github.com/harikiran-lab/immich/commit/f4bc45c5771cd5a46c90651102b455d27fc8b26d
+FROM ghcr.io/harikiran-lab/immich-server:sha-f4bc45c5771cd5a46c90651102b455d27fc8b26d@sha256:d90500556ce5bafbe5f3f3faef3293f8c753197cd792c3104aa683429644fe55 AS patched
+
+# Keep ImageGenius's init, CUDA ML environment, native Node modules and Unraid interface.
+FROM ghcr.io/imagegenius/immich:3.3.5-cuda@sha256:88af37fb2c462923f141c576f41fb622614e8ce473289bfb1357106ce88e1376
+
+COPY hdr/ffmpeg.json /opt/immich-hdr/ffmpeg.json
+COPY hdr/install-ffmpeg.sh /opt/immich-hdr/install-ffmpeg.sh
+RUN bash /opt/immich-hdr/install-ffmpeg.sh
+
+COPY --from=patched /usr/src/app/server/package.json /opt/immich-hdr/patched-package.json
+COPY --from=patched /usr/src/app/server/dist /opt/immich-hdr/dist
+COPY hdr/verify-compatibility.mjs /opt/immich-hdr/verify-compatibility.mjs
+RUN node /opt/immich-hdr/verify-compatibility.mjs && \
+    rm -rf /app/immich/server/dist /app/immich/data/www && \
+    mv /opt/immich-hdr/dist /app/immich/server/dist
+
+COPY --from=patched /build/www /app/immich/data/www
+COPY --from=patched /usr/src/app/server/bin/verify-hdr.mjs /app/immich/server/bin/verify-hdr.mjs
+COPY hdr/verify-layout.mjs /opt/immich-hdr/verify-layout.mjs
+
+ARG SOURCE_COMMIT
+ENV IMMICH_REPOSITORY=harikiran-lab/immich \
+    IMMICH_REPOSITORY_URL=https://github.com/harikiran-lab/immich \
+    IMMICH_SOURCE_REF=v3.3.5-hdr \
+    IMMICH_SOURCE_COMMIT=f4bc45c5771cd5a46c90651102b455d27fc8b26d \
+    IMMICH_SOURCE_URL=https://github.com/harikiran-lab/immich/commit/f4bc45c5771cd5a46c90651102b455d27fc8b26d
+LABEL org.opencontainers.image.source="https://github.com/harikiran-lab/docker-immich" \
+      org.opencontainers.image.url="https://github.com/harikiran-lab/docker-immich" \
+      org.opencontainers.image.revision="${SOURCE_COMMIT}" \
+      org.opencontainers.image.version="3.3.5-cuda-hdr" \
+      org.opencontainers.image.description="ImageGenius-compatible Immich CUDA with corrected HDR tone mapping and original-first playback" \
+      org.opencontainers.image.licenses="GPL-3.0 AND AGPL-3.0-only"
+
+RUN node /opt/immich-hdr/verify-layout.mjs
+# Entrypoint /init, exposed 8080, /config /photos /libraries, and all CUDA ML settings are inherited.
